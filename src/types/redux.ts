@@ -1,13 +1,14 @@
 import {
-    ModelsResponseType,
-    OneObjectResponseType,
-    SchemeResponseType
+    ListItemFieldsType, ListItemType,
+    ModelsApiInterface,
+    OneObjectResponseType
 } from "./api";
 import {CurrentModelType, ObjectIdType} from "./common";
+import {RJSFSchema} from "@rjsf/utils";
 
 export interface AppState {
-    isLoaded: boolean;
-    models: ModelsResponseType;
+    isLoaderShown: boolean;
+    models: ModelsApiInterface;
     dialog: {
         isOpen: boolean;
         title: string;
@@ -21,19 +22,15 @@ export interface AppState {
         variant: 'success' | 'error' | 'warning' | 'info';
     }
 }
-export interface CurrentObjectInterface extends OneObjectResponseType {id: ObjectIdType}
-
-export type AllObjectsType = {
-    id: ObjectIdType;
-    name: string;
-}[];
 
 export interface TabDataStateInterface {
     model: CurrentModelType;
-    fields: SchemeResponseType;
+    schema: RJSFSchema | null;
+    listItemFields: ListItemFieldsType | null;
     objects: {
-        all: AllObjectsType;
-        current: CurrentObjectInterface;
+        all: ListItemType[];
+        currentId: ObjectIdType;
+        current: OneObjectResponseType | null;
     };
     isChanged: boolean;
 }

@@ -1,115 +1,81 @@
 import Box from "@mui/material/Box";
-import {DataFormProps} from "../../types/components";
-import DataField from "./DataField";
-import Button from "@mui/material/Button";
+import Form from '@rjsf/mui';
+import validator from '@rjsf/validator-ajv8';
 import {useAppDispatch, useAppSelector} from "../../app/hooks";
-import React, {useEffect, useState} from "react";
+import React, {useEffect} from "react";
 import {api} from "../../app/api/api";
-import {dataIsChanged, getDataToCreate, getDataToUpdate} from "../../helpers/functions";
-import {selectCurrentObject, selectIsChanged, setAsChanged} from "../../app/slices/tabDataSlice";
-import {showNotification} from "../../helpers/dispatchers";
-import useErrorHandler from "../../helpers/useErrorHandler";
+import {
+    selectCurrentObject,
+    selectCurrentObjectId, selectIsChanged,
+    selectModel,
+    selectSchema, setAsChanged,
+} from "../../app/slices/tabDataSlice";
+import useApiQuery from "../../app/api/hooks/useApiQuery";
+import {RegistryFieldsType, RegistryWidgetsType} from "@rjsf/utils";
+import AnyOfField from "./fields/AnyOfField";
+import {IChangeEvent} from "@rjsf/core";
+import {areObjectsEqual} from "../../helpers/functions";
+import useOnSubmit from "./useOnSubmit";
+import ObjectField from "./fields/ObjectField";
+import ArrayField from "./fields/ArrayField";
 
-const DataForm = (props: DataFormProps) => {
+const boxStyle = {
+    width: 'calc(98vw - var(--items-list-width))',
+    height: 'calc(100vh - var(--header-height))',
+    overflowY: 'auto',
+    overflowX: 'hidden',
+}
+
+const DataForm = () => {
     const dispatch = useAppDispatch();
+    const currentId = useAppSelector(selectCurrentObjectId);
+    const formData = useAppSelector(selectCurrentObject);
+    const modelName = useAppSelector(selectModel);
+    const schema = useAppSelector(selectSchema);
+    const dataIsChanged = useAppSelector(selectIsChanged);
 
-    const currentObject = useAppSelector(selectCurrentObject);
-    const isChanged = useAppSelector(selectIsChanged);
-    const [changedObject, setChangedObject] = useState(currentObject);
+    const {onSubmit} = useOnSubmit({modelName: modelName as string, dataIsChanged})
 
-    const { error, refetch } = api.useGetOneObjectQuery(
-        { modelName: props.modelName, id: currentObject.id as string },
-        { skip: !currentObject.id }
-    );
+    const {queryTrigger: getObject} = useApiQuery({
+        actionName: 'Get object request',
+        apiQueryMethod: api.useLazyGetOneObjectQuery
+    });
 
-    const [
-        updateObject,
-        {
-            error: errorUpdateObject,
-            data: dataUpdateObject
-        }] = api.useUpdateObjectMutation();
-
-    const [
-        createObject,
-        {
-            error: errorCreateObject,
-            data: dataCreateObject
-        }] = api.useCreateObjectMutation();
-
-    const saveHandler = () => {
-        if (changedObject.id === null) return;
-        let data;
-        if (changedObject.id) {
-            data = getDataToUpdate(currentObject, changedObject);
-            updateObject({ modelName: props.modelName, id: changedObject.id, data });
-        } else {
-            data = getDataToCreate(changedObject);
-            createObject({modelName: props.modelName, data});
-        }
+    const fields: RegistryFieldsType = {
+        AnyOfField,
+        ObjectField,
+        ArrayField
     };
 
-    const changeFieldHandler = (name: string, value: string | boolean) => {
-        setChangedObject({...changedObject, [name]: value});
+    const onChange = ({formData: changedFormData}: IChangeEvent) => {
+        dispatch(
+            setAsChanged(
+                !areObjectsEqual(formData as { [key: string]: any }, changedFormData as { [key: string]: any }) &&
+                (currentId !== "undefined" ? formData !== null : formData === null)
+            )
+        );
     };
 
-    useEffect(() => {
-        if (dataIsChanged(currentObject, changedObject)) {
-            dispatch(setAsChanged(true));
-        } else {
-            dispatch(setAsChanged(false));
-        }
-    }, [changedObject, currentObject, dispatch]);
-
-    useEffect(() => setChangedObject(currentObject), [currentObject]);
-
-    useErrorHandler({ error, message: "Error while fetching data of current object" });
-
-    useErrorHandler({ error: errorUpdateObject, message: "Error while updating object" });
-
-    useErrorHandler({ error: errorCreateObject, message: "Error while creating object" });
+    const widgets: RegistryWidgetsType = {};
 
     useEffect(() => {
-        dataUpdateObject && showNotification('Object updated', 'success');
-    }, [dataUpdateObject, props.modelName]);
+        currentId && currentId !== "undefined" && getObject({modelName, id: currentId});
+    }, [modelName, currentId, getObject]);
 
-    useEffect(() => {
-        dataCreateObject && showNotification('Object created', 'success');
-    }, [dataCreateObject, props.modelName]);
-
-    useEffect(() => { currentObject.id && refetch() }, [currentObject.id, refetch]);
-
-    if (Object.keys(changedObject).length === 1) return null;
+    if (!schema) return null;
 
     return (
-        <Box
-            flexGrow={'2'}
-            component="form"
-            sx={{
-                '& .MuiTextField-root': { m: 1, width: '25ch' },
-            }}
-            noValidate
-            autoComplete="off"
-        >
-            {
-                Object.keys(props.fields).map((key, index) => {
-                    return (
-                        <DataField
-                            name={key}
-                            type={props.fields[key]} key={index}
-                            value={(changedObject)[key]}
-                            onChange={changeFieldHandler}
-                        />
-                    )
-                })
-            }
-            <Button
-                variant="contained"
-                disabled={!isChanged}
-                onClick={saveHandler}
-                style={{'width': '100px', margin: '1%'}}
-            >
-                Save
-            </Button>
+        <Box sx={boxStyle}>
+            <Form
+                schema={schema}
+                fields={fields}
+                widgets={widgets}
+                validator={validator}
+                onChange={onChange}
+                formData={formData}
+                onSubmit={onSubmit}
+                disabled={currentId === null}
+            />
         </Box>
     )
 };

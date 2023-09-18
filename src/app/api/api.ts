@@ -1,28 +1,44 @@
 import {createApi, fetchBaseQuery} from "@reduxjs/toolkit/dist/query/react";
-import {AllObjectsResponseType, ModelsResponseType, OneObjectResponseType, SchemeResponseType} from "../../types/api";
+import {ListItemFieldsType, ListItemType, ModelsApiInterface, OneObjectResponseType} from "../../types/api";
+import {RJSFSchema} from "@rjsf/utils";
 
 export const api = createApi({
     baseQuery: fetchBaseQuery({baseUrl: '/api'}),
-    tagTypes: ['Models', 'Scheme', 'Objects', 'OneObject'],
+    tagTypes: ['Models', 'Schema', 'ListItemFields', 'Objects', 'OneObject'],
     endpoints: (builder) => ({
-        getModels: builder.query<ModelsResponseType, void>({
+        getModels: builder.query<ModelsApiInterface, void>({
             query: () => '/models',
             providesTags: ['Models'],
         }),
-        getSchemes: builder.query<SchemeResponseType, { modelName: string }>({
-            query: ({ modelName }) => `/${modelName}/scheme`,
-            providesTags: ['Scheme'],
+        getSchemas: builder.query<RJSFSchema, { modelName: string }>({
+            query: ({modelName}) => `/${modelName}/schema`,
+            providesTags: ['Schema'],
         }),
-        getAllObjects: builder.query<AllObjectsResponseType, { modelName: string }>({
-            query: ({ modelName }) => `/${modelName}`,
+        getListItemFields: builder.query<ListItemFieldsType, { modelName: string }>({
+            query: () => '/list/item/fields',
+            providesTags: ['ListItemFields'],
+        }),
+        getAllObjects: builder.query<ListItemType[], { modelName: string }>({
+            query: ({modelName}) => `/${modelName}`,
             providesTags: ['Objects']
         }),
+        getAllObjectsForDropDown: builder.query<ListItemType[], { modelName: string }>({
+            query: ({modelName}) => `/${modelName}`,
+        }),
         getOneObject: builder.query<OneObjectResponseType, { modelName: string, id: string }>({
-            query: ({ modelName, id }) => `/${modelName}/${id}`,
+            query: ({modelName, id}) => `/${modelName}/${id}`,
             providesTags: ['OneObject'],
         }),
-        updateObject: builder.mutation<OneObjectResponseType, { modelName: string, id: string, data: OneObjectResponseType }>({
-            query: ({ modelName, id, data }) => ({
+        getOneObjectSimplified: builder.query<ListItemType, { modelName: string, id: string }>({
+            // is used to get object as the list of objects type
+            query: ({modelName, id}) => `/${modelName}/${id}?simplified=true`,
+        }),
+        updateObject: builder.mutation<OneObjectResponseType, {
+            modelName: string,
+            id: string,
+            data: OneObjectResponseType
+        }>({
+            query: ({modelName, id, data}) => ({
                 url: `/${modelName}/${id}`,
                 method: 'PATCH',
                 body: data,
@@ -30,7 +46,7 @@ export const api = createApi({
             invalidatesTags: ['OneObject', 'Objects'],
         }),
         createObject: builder.mutation<OneObjectResponseType, { modelName: string, data: OneObjectResponseType }>({
-            query: ({ modelName, data }) => ({
+            query: ({modelName, data}) => ({
                 url: `/${modelName}`,
                 method: 'POST',
                 body: data,
@@ -38,7 +54,7 @@ export const api = createApi({
             invalidatesTags: ['OneObject', 'Objects'],
         }),
         deleteObject: builder.mutation<OneObjectResponseType, { modelName: string, id: string }>({
-            query: ({ modelName, id }) => ({
+            query: ({modelName, id}) => ({
                 url: `/${modelName}/${id}`,
                 method: 'DELETE',
             }),

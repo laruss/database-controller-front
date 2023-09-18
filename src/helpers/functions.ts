@@ -1,42 +1,43 @@
 import {store} from "../app/store";
 import {setDialog} from "../app/slices/appSlice";
-import {CurrentObjectInterface} from "../types/redux";
 
-export const dataIsChanged = (originalObject: CurrentObjectInterface, changedObject: CurrentObjectInterface) => {
-    let result = false;
-    Object.keys(changedObject).forEach((key) => {
-        if (changedObject[key] !== originalObject[key]) {
-            result = true;
-        }
-    });
+export const getIdAndOtherField = (list: string[]) => (
+    {id: list.find(item => item === 'id'), other: list.find(item => item !== 'id')}
+)
 
-    return result;
+export const isObjectEmpty = (obj: { [key: string]: any }) => {
+    return Object.keys(obj).length === 0;
 };
 
-export const handleItemSwitch = (anyFunction: () => void) => {
+export const areObjectsEqual = (obj1: { [key: string]: any }, obj2: { [key: string]: any }) => {
+    return JSON.stringify(obj1) === JSON.stringify(obj2);
+};
+
+export const handleItemSwitch = (callback: () => void) => {
+    if (!store.getState().tabData.isChanged) {
+        return callback();
+    }
     store.dispatch(setDialog({
         isOpen: true,
         title: 'You have unsaved changes',
         text: 'You have unsaved changes. Are you sure you want to switch?',
         onConfirm: () => {
-            anyFunction();
+            callback();
         },
-        onCancel: () => {}
+        onCancel: () => {
+        }
     }));
 };
 
-export const getDataToUpdate = (currentObject: CurrentObjectInterface, changedObject: CurrentObjectInterface) => (
-    Object.keys(changedObject).reduce((acc, key) => {
-        if (changedObject[key] !== currentObject[key]) {
-            acc[key] = changedObject[key];
+export const handleItemDelete = (callback: () => void) => {
+    store.dispatch(setDialog({
+        isOpen: true,
+        title: 'Are you sure you want to delete this item?',
+        text: 'Are you sure you want to delete this item?',
+        onConfirm: () => {
+            callback();
+        },
+        onCancel: () => {
         }
-        return acc;
-    }, {} as {[key:string]: any})
-);
-
-export const getDataToCreate = (changedObject: CurrentObjectInterface) => (
-    Object.keys(changedObject).reduce((acc, key) => {
-        key !== 'id' && (acc[key] = changedObject[key]);
-        return acc;
-    }, {} as {[key:string]: any})
-);
+    }));
+};

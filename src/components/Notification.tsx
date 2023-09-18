@@ -1,9 +1,9 @@
 import * as React from 'react';
 import Stack from '@mui/material/Stack';
 import Snackbar from '@mui/material/Snackbar';
-import MuiAlert, { AlertProps } from '@mui/material/Alert';
+import MuiAlert, {AlertProps} from '@mui/material/Alert';
 import {useAppDispatch, useAppSelector} from "../app/hooks";
-import {setNotification} from "../app/slices/appSlice";
+import {selectNotification, setNotification} from "../app/slices/appSlice";
 
 const Alert = React.forwardRef<HTMLDivElement, AlertProps>(function Alert(
     props,
@@ -14,18 +14,15 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(function Alert(
 
 export default function Notification() {
     const dispatch = useAppDispatch();
-    const {isOpen, text, variant} = useAppSelector(state => state.app.notification);
+    const {isOpen, text, variant} = useAppSelector(selectNotification);
 
     const handleClose = (event?: React.SyntheticEvent | Event, reason?: string) => {
-        if (reason === 'clickaway') {
-            return;
-        }
-
+        if (reason === 'clickaway') return;
         dispatch(setNotification({isOpen: false, text: '', variant: 'info'}));
     };
 
     return (
-        <Stack spacing={2} sx={{ width: '100%' }}>
+        <Stack spacing={2} sx={{width: '100%'}}>
             <Snackbar
                 open={isOpen}
                 autoHideDuration={6000}
@@ -35,11 +32,11 @@ export default function Notification() {
                 <Alert
                     onClose={handleClose}
                     severity={variant}
-                    sx={{ width: '100%' }}
+                    sx={{width: '100%'}}
                 >
                     {text}
                 </Alert>
             </Snackbar>
         </Stack>
     );
-}
+};

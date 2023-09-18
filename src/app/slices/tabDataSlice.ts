@@ -1,17 +1,17 @@
 import {TabDataStateInterface} from "../../types/redux";
 import {createSlice, PayloadAction} from "@reduxjs/toolkit";
-import { AllObjectsResponseType, OneObjectResponseType } from "../../types/api";
+import {ListItemFieldsType, ListItemType, OneObjectResponseType} from "../../types/api";
 import {api} from "../api/api";
 import {CurrentModelType, ObjectIdType} from "../../types/common";
 
 const initialState: TabDataStateInterface = {
     model: null,
-    fields: {},
+    schema: null,
+    listItemFields: null,
     objects: {
         all: [],
-        current: {
-            id: null
-        }
+        currentId: null,
+        current: null,
     },
     isChanged: false
 };
@@ -23,20 +23,25 @@ export const tabDataSlice = createSlice({
         setModel: (state, action: PayloadAction<CurrentModelType>) => {
             state.model = action.payload;
         },
-        setObjects: (state, action: PayloadAction<AllObjectsResponseType>) => {
+        setObjects: (state, action: PayloadAction<ListItemType[]>) => {
             state.objects.all = action.payload;
         },
-        setCurrentObject: (state, action: PayloadAction<OneObjectResponseType>) => {
-            state.objects.current = {
-                ...action.payload,
-                id: state.objects.current.id
-            };
+        setCurrentId: (state, action: PayloadAction<ObjectIdType>) => {
+            if (action.payload !== "undefined") {
+                state.objects.all = state.objects.all.filter(object => object.id !== undefined);
+            }
+            state.objects.currentId = action.payload;
+            state.objects.current = null;
         },
-        setCurrentObjectId: (state, action: PayloadAction<ObjectIdType>) => {
-            state.objects.current.id = action.payload;
+        setCurrentObject: (state, action: PayloadAction<OneObjectResponseType>) => {
+            state.objects.currentId = action.payload.id as string || undefined;
+            state.objects.current = action.payload;
         },
         setCurrentObjectAsNew: (state) => {
+            const other = (state.listItemFields as ListItemFieldsType).find(item => item !== 'id');
+            state.objects.all.push({id: undefined, [other as string]: "New object"});
             state.objects.current = initialState.objects.current;
+            state.objects.currentId = "undefined";
             state.isChanged = false;
         },
         setAsChanged: (state, action: PayloadAction<boolean>) => {
@@ -45,9 +50,14 @@ export const tabDataSlice = createSlice({
     },
     extraReducers: builder => {
         builder.addMatcher(
-            api.endpoints.getSchemes.matchFulfilled,
+            api.endpoints.getSchemas.matchFulfilled,
             (state, {payload}) => {
-                state.fields = payload;
+                state.schema = payload;
+            }
+        ).addMatcher(
+            api.endpoints.getListItemFields.matchFulfilled,
+            (state, {payload}) => {
+                state.listItemFields = payload;
             }
         ).addMatcher(
             api.endpoints.getAllObjects.matchFulfilled,
@@ -58,28 +68,29 @@ export const tabDataSlice = createSlice({
         ).addMatcher(
             api.endpoints.getOneObject.matchFulfilled,
             (state, {payload}) => {
-                state.objects.current = {
-                    ...payload,
-                    id: state.objects.current.id
-                };
+                state.objects.current = payload;
             }
         ).addMatcher(
             api.endpoints.updateObject.matchFulfilled,
             (state, {payload}) => {
-                state.objects.current = {
-                    ...payload,
-                    id: state.objects.current.id
-                };
+                state.objects.current = payload;
                 state.isChanged = false;
             }
         ).addMatcher(
             api.endpoints.createObject.matchFulfilled,
             (state, {payload}) => {
-                state.objects.current = {
-                    ...payload,
-                    id: payload.id as string || undefined
-                };
+                state.objects.currentId = payload.id as string;
+                state.objects.current = payload;
                 state.isChanged = false;
+            }
+        ).addMatcher(
+            api.endpoints?.deleteObject.matchFulfilled,
+            (state, {meta}) => {
+                if (meta.arg.originalArgs.id === state.objects.currentId) {
+                    state.objects.currentId = null;
+                    state.objects.current = null;
+                    state.isChanged = false;
+                }
             }
         )
     }
@@ -89,19 +100,17 @@ export const {
     setModel,
     setObjects,
     setCurrentObject,
-    setCurrentObjectId,
+    setCurrentId,
     setCurrentObjectAsNew,
     setAsChanged
 } = tabDataSlice.actions;
 
 export default tabDataSlice.reducer;
 
-export const selectModel = (state: {tabData: TabDataStateInterface}) => state.tabData.model;
-
-export const selectFields = (state: {tabData: TabDataStateInterface}) => state.tabData.fields;
-
-export const selectObjects = (state: {tabData: TabDataStateInterface}) => state.tabData.objects;
-
-export const selectCurrentObject = (state: {tabData: TabDataStateInterface}) => state.tabData.objects.current;
-
-export const selectIsChanged = (state: {tabData: TabDataStateInterface}) => state.tabData.isChanged;
+export const selectModel = (state: { tabData: TabDataStateInterface }) => state.tabData.model;
+export const selectSchema = (state: { tabData: TabDataStateInterface }) => state.tabData.schema;
+export const selectListItemFields = (state: { tabData: TabDataStateInterface }) => state.tabData.listItemFields;
+export const selectObjects = (state: { tabData: TabDataStateInterface }) => state.tabData.objects;
+export const selectCurrentObject = (state: { tabData: TabDataStateInterface }) => state.tabData.objects.current;
+export const selectCurrentObjectId = (state: { tabData: TabDataStateInterface }) => state.tabData.objects.currentId;
+export const selectIsChanged = (state: { tabData: TabDataStateInterface }) => state.tabData.isChanged;

@@ -3,14 +3,16 @@ import {ListItemButton} from "@mui/material";
 import ListItemDelete from "./ListItemDelete";
 import React from "react";
 import {ListItemInterface} from "../../types/components";
-import {setCurrentObjectId} from "../../app/slices/tabDataSlice";
+import {setCurrentId} from "../../app/slices/tabDataSlice";
 import {useAppDispatch} from "../../app/hooks";
+import {handleItemSwitch} from "../../helpers/functions";
 
 const ListItem = (props: ListItemInterface) => {
     const dispatch = useAppDispatch();
 
     const handleClick = () => {
-        dispatch(setCurrentObjectId(props.itemId));
+        if (props.itemId === props.selectedItemId) return;
+        handleItemSwitch(() => dispatch(setCurrentId(props.itemId)));
     };
 
     return (

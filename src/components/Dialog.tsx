@@ -14,12 +14,20 @@ export default function Dialog() {
 
     const handleCancel = () => {
         onCancel && onCancel();
-        dispatch(setDialog({isOpen: false, title: '', text: '', onConfirm: () => {}, onCancel: () => {}}));
+        dispatch(setDialog({
+            isOpen: false, title: '', text: '', onConfirm: () => {
+            }, onCancel: () => {
+            }
+        }));
     };
 
     const handleConfirm = () => {
         onConfirm && onConfirm();
-        dispatch(setDialog({isOpen: false, title: '', text: '', onConfirm: () => {}, onCancel: () => {}}));
+        dispatch(setDialog({
+            isOpen: false, title: '', text: '', onConfirm: () => {
+            }, onCancel: () => {
+            }
+        }));
     };
 
     return (
@@ -47,4 +55,4 @@ export default function Dialog() {
             </DialogMUI>
         </div>
     );
-}
+};

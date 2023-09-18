@@ -11,7 +11,6 @@ interface ErrorInterface {
 const useErrorHandler = ({error, message}: ErrorInterface) => {
     useEffect(() => {
         if (error) {
-
             console.warn(error);
             showNotification(message, 'error');
         }
